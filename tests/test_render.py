@@ -88,12 +88,19 @@ class TestParser(unittest.TestCase):
         self.assertIsNone(args.new)
 
     def test_versions_and_paths_parse_together(self):
-        args = build_parser().parse_args(
+        # An option between two positionals is the invocation everyone types
+        # first, and plain parse_args cannot match it before Python 3.12.
+        args = build_parser().parse_intermixed_args(
             ["requests", "--from", "1.0", "--to", "2.0", "src", "tests"]
         )
         self.assertEqual(args.old, "1.0")
         self.assertEqual(args.new, "2.0")
         self.assertEqual([str(p) for p in args.paths], ["src", "tests"])
+
+    def test_paths_before_the_options_also_parse(self):
+        args = build_parser().parse_intermixed_args(["requests", "src", "--to", "2.0"])
+        self.assertEqual([str(p) for p in args.paths], ["src"])
+        self.assertEqual(args.new, "2.0")
 
     def test_an_unknown_colour_choice_is_rejected(self):
         with self.assertRaises(SystemExit):

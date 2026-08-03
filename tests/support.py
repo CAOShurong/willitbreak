@@ -22,7 +22,9 @@ def write_package(root: pathlib.Path, package: str, modules: dict[str, str]) -> 
     for name, source in modules.items():
         path = root / package / (name + ".py")
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(source, encoding="utf-8", newline="\n")
+        # Not Path.write_text(newline=...), which only exists from 3.10.
+        with open(path, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(source)
 
 
 class PackageCase(unittest.TestCase):

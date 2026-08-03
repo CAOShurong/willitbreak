@@ -96,7 +96,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    # parse_intermixed_args, not parse_args: the natural invocation is
+    # `willitbreak pkg --to 2.0 src/`, with an option sitting between two
+    # positionals. Plain parse_args cannot match that against a trailing
+    # nargs="*" before Python 3.12, and fails with "unrecognized arguments"
+    # on exactly the command everyone types first.
+    args = parser.parse_intermixed_args(argv)
     _use_utf8(sys.stdout)
     _use_utf8(sys.stderr)
 
