@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "willitbreak"
+dynamic = ["version"]
+description = "Will this dependency upgrade break code you actually wrote? Diffs two versions of a package's API and reports only the changes that hit your call sites."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Shurong Cao", email = "170531907+CAOShurong@users.noreply.github.com" }]
+keywords = [
+    "breaking-changes",
+    "upgrade",
+    "dependencies",
+    "api-diff",
+    "semver",
+    "static-analysis",
+    "dependabot",
+    "renovate",
+    "compatibility",
+    "cli",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+]
+# Deliberately empty. A tool you reach for because a dependency upgrade looks
+# risky must not itself drag in dependencies that could need upgrading.
+dependencies = []
+
+[project.optional-dependencies]
+docs = ["pillow>=10"]
+
+[project.urls]
+Homepage = "https://github.com/CAOShurong/willitbreak"
+Repository = "https://github.com/CAOShurong/willitbreak"
+Issues = "https://github.com/CAOShurong/willitbreak/issues"
+Changelog = "https://github.com/CAOShurong/willitbreak/blob/main/CHANGELOG.md"
+
+[project.scripts]
+willitbreak = "willitbreak.cli:main"
+
+[tool.hatch.version]
+path = "src/willitbreak/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/willitbreak"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "docs", "README.md", "LICENSE", "CHANGELOG.md"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
