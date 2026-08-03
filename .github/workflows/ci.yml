@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: py${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.9", "3.13"]
+        include:
+          - os: ubuntu-latest
+            python: "3.10"
+          - os: ubuntu-latest
+            python: "3.11"
+          - os: ubuntu-latest
+            python: "3.12"
+          - os: macos-latest
+            python: "3.13"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # A bare interpreter with nothing installed, which is what proves the
+      # no-dependencies claim. The suite itself never touches the network:
+      # it builds packages on disk and reads them, so it is fast and does not
+      # go red when PyPI has a bad day.
+      - name: Test
+        run: python -m unittest discover -s tests -v
+        env:
+          PYTHONPATH: src
+
+  live:
+    name: Against a real upgrade
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The offline suite proves the logic; this proves the whole thing works
+      # against a package as actually published. urllib3 1.26 -> 2.x is one of
+      # the more disruptive real releases, and the example file uses two APIs
+      # it removed.
+      - name: A breaking upgrade exits 2 and names both call sites
+        run: |
+          set -euo pipefail
+          set +e
+          out=$(python -m willitbreak urllib3 --from 1.26.18 --to 2.2.1 docs/example --color never)
+          code=$?
+          set -e
+          echo "$out"
+          test "$code" = "2" || { echo "expected exit 2, got $code"; exit 1; }
+          grep -q "strict" <<<"$out" || { echo "missed the removed keyword"; exit 1; }
+          grep -q "from_httplib" <<<"$out" || { echo "missed the removed method"; exit 1; }
+          grep -q "client.py:18" <<<"$out" || { echo "missed the line number"; exit 1; }
+        env:
+          PYTHONPATH: src
+
+      # The other half of the promise: a compatible upgrade must come back
+      # clean. A tool that flags everything is as useless as one that flags
+      # nothing.
+      - name: A compatible upgrade exits 0
+        run: |
+          set -euo pipefail
+          python -m willitbreak requests --from 2.28.0 --to 2.32.3 docs/example --color never
+        env:
+          PYTHONPATH: src
+
+      - name: A package that does not exist fails as a tool error, not as drift
+        run: |
+          set +e
+          python -m willitbreak no-such-package-91731 --from 1.0 --to 2.0 docs/example 2>/dev/null
+          code=$?
+          set -e
+          test "$code" = "1" || { echo "expected exit 1, got $code"; exit 1; }
+        env:
+          PYTHONPATH: src
+
+  readme:
+    name: README is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install pillow
+      - run: python docs/build_docs.py --check
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install ruff
+      - run: ruff check src tests docs
+      - run: ruff format --check src tests docs
+
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: python -m twine check --strict dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
