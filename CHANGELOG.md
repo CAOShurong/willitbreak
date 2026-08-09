@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-08-09
+
+### Security
+
+- Require every downloaded ZIP or source-distribution member to remain inside
+  the exact cache destination by path component, preventing a crafted archive
+  from writing into a same-prefix sibling directory.
+- Reject non-file and non-directory tar members, including links, devices, and
+  FIFOs, before extraction.
+
 ## [0.1.0] - 2026-08-03
 
 First release.
@@ -25,4 +35,5 @@ First release.
   and colour handling that honours `NO_COLOR`.
 - Exit code 2 for a breaking upgrade, 1 for the tool itself failing.
 
+[0.1.1]: https://github.com/CAOShurong/willitbreak/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/CAOShurong/willitbreak/releases/tag/v0.1.0

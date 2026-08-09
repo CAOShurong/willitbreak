@@ -143,26 +143,57 @@ def _download(url: str) -> bytes:
         raise FetchError(f"download failed: {exc}") from exc
 
 
+def _archive_target(destination: pathlib.Path, member: str) -> pathlib.Path:
+    """Resolve one archive member inside the exact destination directory.
+
+    A string-prefix check is not a directory-boundary check: a sibling named
+    ``package-escape`` starts with the path to ``package``.  ``relative_to``
+    compares path components instead, so absolute paths, ``..`` traversal,
+    and same-prefix siblings are all rejected.
+    """
+    root = destination.resolve()
+    target = (root / member).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError as exc:
+        raise FetchError(f"archive entry escapes its directory: {member}") from exc
+    return target
+
+
 def _safe_extract_zip(data: bytes, destination: pathlib.Path) -> None:
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
-        for member in archive.namelist():
-            target = (destination / member).resolve()
+        for member in archive.infolist():
             # An archive entry that escapes the destination is either malice
             # or corruption; either way it does not get written.
-            if not str(target).startswith(str(destination.resolve())):
-                raise FetchError(f"archive entry escapes its directory: {member}")
-        archive.extractall(destination)
+            target = _archive_target(destination, member.filename)
+            if member.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with archive.open(member) as source, open(target, "wb") as output:
+                shutil.copyfileobj(source, output)
 
 
 def _safe_extract_tar(data: bytes, destination: pathlib.Path) -> None:
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:*") as archive:
         for member in archive.getmembers():
-            target = (destination / member.name).resolve()
-            if not str(target).startswith(str(destination.resolve())):
-                raise FetchError(f"archive entry escapes its directory: {member.name}")
-            if member.issym() or member.islnk():
-                raise FetchError(f"archive contains a link: {member.name}")
-        archive.extractall(destination)
+            target = _archive_target(destination, member.name)
+            # PyPI packages only need regular files and directories.  Links,
+            # devices, and FIFOs can redirect writes or create host objects
+            # that have no place in a source archive.
+            if not (member.isfile() or member.isdir()):
+                raise FetchError(
+                    f"archive contains an unsupported entry: {member.name}"
+                )
+            if member.isdir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            source = archive.extractfile(member)
+            if source is None:  # Defensive: every regular file should open.
+                raise FetchError(f"could not read archive entry: {member.name}")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with source, open(target, "wb") as output:
+                shutil.copyfileobj(source, output)
 
 
 def _find_import_root(

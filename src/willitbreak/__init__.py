@@ -24,7 +24,7 @@ from .report import Finding, Outcome, assess
 from .surface import Surface, Symbol, read_surface
 from .usage import Reference, scan_paths, scan_source
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "Change",
