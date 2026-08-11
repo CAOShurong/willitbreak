@@ -8,8 +8,63 @@ import tarfile
 import tempfile
 import unittest
 import zipfile
+from unittest import mock
 
-from willitbreak.fetch import FetchError, _safe_extract_tar, _safe_extract_zip
+from willitbreak.fetch import (
+    FetchError,
+    _safe_extract_tar,
+    _safe_extract_zip,
+    _validate_project_name,
+    fetch_version,
+)
+
+
+class CacheBoundaryTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._temp.cleanup)
+        self.root = pathlib.Path(self._temp.name)
+        self.cache = self.root / "cache"
+        self.cache.mkdir()
+
+    def test_valid_python_project_names_are_accepted(self) -> None:
+        for package in ("a", "requests2", "zope.interface", "google_cloud-storage"):
+            with self.subTest(package=package):
+                _validate_project_name(package)
+
+    def test_unicode_casefold_lookalike_is_not_an_ascii_project_name(self) -> None:
+        with self.assertRaisesRegex(FetchError, "invalid project name"):
+            _validate_project_name("\N{KELVIN SIGN}")
+
+    def test_project_name_cannot_delete_a_cache_sibling(self) -> None:
+        victim = self.root / "victim-1.0"
+        victim.mkdir()
+        sentinel = victim / "KEEP.txt"
+        sentinel.write_text("keep", encoding="utf-8")
+
+        release_files = mock.patch(
+            "willitbreak.fetch._release_files",
+            side_effect=FetchError("network must not be reached"),
+        )
+        with release_files, self.assertRaisesRegex(FetchError, "invalid project name"):
+            fetch_version("../victim", "1.0", cache=self.cache)
+
+        self.assertEqual(sentinel.read_text(encoding="utf-8"), "keep")
+
+    def test_version_cannot_resolve_outside_the_cache(self) -> None:
+        victim = self.root / "victim"
+        victim.mkdir()
+        sentinel = victim / "KEEP.txt"
+        sentinel.write_text("keep", encoding="utf-8")
+
+        release_files = mock.patch(
+            "willitbreak.fetch._release_files",
+            side_effect=FetchError("network must not be reached"),
+        )
+        with release_files, self.assertRaisesRegex(FetchError, "outside the cache"):
+            fetch_version("demo", "../../../victim", cache=self.cache)
+
+        self.assertEqual(sentinel.read_text(encoding="utf-8"), "keep")
 
 
 class SafeExtractionTests(unittest.TestCase):

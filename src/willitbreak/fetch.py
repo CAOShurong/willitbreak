@@ -17,6 +17,7 @@ import io
 import json
 import os
 import pathlib
+import re
 import shutil
 import tarfile
 import urllib.error
@@ -35,6 +36,10 @@ __all__ = [
 PYPI = "https://pypi.org/pypi"
 USER_AGENT = "willitbreak (+https://github.com/CAOShurong/willitbreak)"
 TIMEOUT = 30
+PROJECT_NAME = re.compile(
+    r"(?:[A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])\Z",
+    re.ASCII | re.IGNORECASE,
+)
 
 
 class FetchError(Exception):
@@ -87,6 +92,7 @@ def _get_json(url: str) -> dict:
 
 
 def latest_version(package: str) -> str:
+    _validate_project_name(package)
     data = _get_json(f"{PYPI}/{package}/json")
     version = data.get("info", {}).get("version")
     if not version:
@@ -107,6 +113,7 @@ def installed_version(package: str) -> str | None:
 
 
 def _release_files(package: str, version: str) -> list[dict]:
+    _validate_project_name(package)
     data = _get_json(f"{PYPI}/{package}/{version}/json")
     files = data.get("urls") or []
     if not files:
@@ -141,6 +148,29 @@ def _download(url: str) -> bytes:
             return response.read()
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise FetchError(f"download failed: {exc}") from exc
+
+
+def _validate_project_name(package: str) -> None:
+    """Reject names that cannot identify a project on a Python index."""
+    if PROJECT_NAME.fullmatch(package) is None:
+        raise FetchError(
+            f"invalid project name {package!r}; expected letters, numbers, '.', '-', "
+            "or '_' with an alphanumeric first and last character"
+        )
+
+
+def _cache_destination(cache: pathlib.Path, package: str, version: str) -> pathlib.Path:
+    """Return a cache path that is provably contained by ``cache``."""
+    _validate_project_name(package)
+    try:
+        root = cache.resolve()
+        destination = (cache / f"{package}-{version}").resolve()
+        destination.relative_to(root)
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise FetchError(
+            f"cache destination for {package} {version} resolves outside the cache"
+        ) from exc
+    return destination
 
 
 def _archive_target(destination: pathlib.Path, member: str) -> pathlib.Path:
@@ -266,7 +296,7 @@ def fetch_version(
 ) -> Fetched:
     """Download and unpack one version, reusing the cache when possible."""
     cache = cache or cache_root()
-    destination = cache / f"{package}-{version}"
+    destination = _cache_destination(cache, package, version)
     marker = destination / ".willitbreak-complete"
 
     if not marker.is_file():

@@ -170,8 +170,19 @@ python docs/build_docs.py
 python docs/build_docs.py --check   # what CI runs
 ```
 
-CI runs on Ubuntu, Windows and macOS across Python 3.9–3.13, checks this
+CI runs on Ubuntu, Windows and macOS across Python 3.9–3.14, checks this
 README still matches the output, and verifies the exit codes.
+
+## Verify a release
+
+Starting with v0.1.2, every GitHub release includes a `SHA256SUMS` manifest and
+GitHub build-provenance attestations for the wheel and source distribution:
+
+```bash
+sha256sum --check SHA256SUMS
+gh attestation verify willitbreak-0.1.2-py3-none-any.whl \
+  --repo CAOShurong/willitbreak
+```
 
 ## License
 
