@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-08-11
+
+### Security
+
+- Validate distribution names against the Python packaging name specification
+  and prove each cache destination remains inside the selected cache before
+  deleting or creating it. A crafted project name or version can no longer
+  remove a same-named directory outside the cache.
+- Pin every third-party GitHub Action to an immutable commit and enable weekly
+  Dependabot checks for Action updates.
+
+### Changed
+
+- Test Python 3.14 on Linux, Windows, macOS, and in the release gate.
+- Publish a SHA-256 manifest and GitHub build-provenance attestations with each
+  GitHub release.
+
 ## [0.1.1] - 2026-08-09
 
 ### Security
@@ -35,5 +52,6 @@ First release.
   and colour handling that honours `NO_COLOR`.
 - Exit code 2 for a breaking upgrade, 1 for the tool itself failing.
 
+[0.1.2]: https://github.com/CAOShurong/willitbreak/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/CAOShurong/willitbreak/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/CAOShurong/willitbreak/releases/tag/v0.1.0
