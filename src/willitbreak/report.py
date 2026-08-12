@@ -279,7 +279,10 @@ def render(outcome: Outcome, palette: Palette, *, ascii_only: bool = False) -> s
                 "bad",
             )
         )
-    return "\n".join(rows)
+    text = "\n".join(rows)
+    if ascii_only:
+        return text.encode("ascii", errors="backslashreplace").decode("ascii")
+    return text
 
 
 def _call_shape(reference: Reference, ascii_only: bool) -> str:

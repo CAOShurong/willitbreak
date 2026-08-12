@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 import re
 import unittest
+from dataclasses import replace
 
 from support import PackageCase
 
@@ -47,6 +48,16 @@ class TestRender(PackageCase):
     def test_ascii_mode_emits_only_ascii(self):
         text = render(self.outcome_with_break(), Palette("never"), ascii_only=True)
         text.encode("ascii", errors="strict")
+
+    def test_ascii_mode_escapes_a_unicode_source_path(self):
+        outcome = self.outcome_with_break()
+        reference = outcome.findings[0].references[0]
+        outcome.findings[0].references[0] = replace(reference, path="目录/调用_Ω.py")
+
+        text = render(outcome, Palette("never"), ascii_only=True)
+
+        text.encode("ascii", errors="strict")
+        self.assertIn(r"\u76ee\u5f55/\u8c03\u7528_\u03a9.py:2", text)
 
     def test_unicode_mode_uses_the_arrow(self):
         self.assertIn("→", render(self.outcome_with_break(), Palette("never")))
