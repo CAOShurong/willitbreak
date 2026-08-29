@@ -16,8 +16,7 @@ the whole changelog, or upgrade in a branch and wait for the test suite to
 maybe catch it.
 
 ```bash
-pip install willitbreak
-willitbreak urllib3 --to 2.2.1
+uvx willitbreak urllib3 --to 2.2.1   # measure a real upgrade, nothing installed
 ```
 
 ![report](https://raw.githubusercontent.com/CAOShurong/willitbreak/main/docs/report.png)
@@ -25,7 +24,7 @@ willitbreak urllib3 --to 2.2.1
 284 API changes in that release. Two of them touch this code. Those two come
 with file and line numbers; the rest are a number you can ignore.
 
-No dependencies. Python 3.9+.
+`pip install willitbreak` also works for persistent use. No dependencies. Python 3.9+.
 
 ## Why this isn't just a changelog
 
@@ -135,7 +134,7 @@ me* — without touching your environment.
 | `--json` | Machine-readable, for a bot that files the summary |
 | `--import-name NAME` | When the import name differs from the package name |
 | `--cache DIR` | Where downloaded versions live (`WILLITBREAK_CACHE`) |
-| `--ascii` | No non-ASCII characters |
+|| `--ascii` | Escape non-ASCII text to guarantee an entirely ASCII terminal report |
 | `--color` | `auto`, `always`, `never`. `NO_COLOR` is honoured |
 
 Paths default to the current directory:
