@@ -8,9 +8,11 @@ unprovable is the feature, not a limitation to be worked around.
 
 from __future__ import annotations
 
+import pathlib
+import tempfile
 import unittest
 
-from willitbreak.usage import scan_source
+from willitbreak.usage import scan_paths, scan_source
 
 
 def names(code: str, package: str = "pkg") -> list[str]:
@@ -129,6 +131,25 @@ class TestCallShape(unittest.TestCase):
     def test_line_numbers_point_at_the_call(self):
         call = calls("import pkg\n\n\npkg.f()\n")["pkg.f"]
         self.assertEqual(call.lineno, 4)
+
+
+class TestBom(unittest.TestCase):
+    def test_a_leading_utf8_bom_does_not_hide_a_call(self):
+        # Notepad and some Windows tools write a BOM. ast.parse treats that
+        # as a SyntaxError, so a naive utf-8 read would skip the file and
+        # miss the break.
+        refs = scan_source("\ufeffimport pkg\npkg.f()\n", "pkg")
+        self.assertIn("pkg.f", [r.qualname for r in refs])
+
+    def test_scan_paths_reads_a_bom_file(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = pathlib.Path(raw)
+            path = root / "app.py"
+            path.write_bytes(b"\xef\xbb\xbfimport pkg\npkg.f()\n")
+            result = scan_paths([path], "pkg", root=root)
+            self.assertEqual(result.unparsed, [])
+            self.assertEqual(result.files_scanned, 1)
+            self.assertIn("pkg.f", [r.qualname for r in result.references])
 
 
 if __name__ == "__main__":

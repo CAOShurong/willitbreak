@@ -283,6 +283,8 @@ class _Resolver(ast.NodeVisitor):
 
 def scan_source(source: str, package: str, path: str = "<string>") -> list[Reference]:
     """Every provable reference to ``package`` in one file's source."""
+    if source.startswith("\ufeff"):
+        source = source[1:]
     tree = ast.parse(source, filename=path)
     resolver = _Resolver(package, path)
     resolver.visit(tree)
@@ -318,7 +320,7 @@ def scan_paths(
                 display = str(path)
             display = display.replace("\\", "/")
             try:
-                source = path.read_text(encoding="utf-8", errors="replace")
+                source = path.read_text(encoding="utf-8-sig", errors="replace")
             except OSError as exc:  # pragma: no cover - permissions
                 result.unparsed.append((display, str(exc)))
                 continue

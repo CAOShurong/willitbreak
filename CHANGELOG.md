@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Read Python files as UTF-8 with an optional BOM. A leading `U+FEFF` made
+  `ast.parse` fail, so Windows-saved sources were recorded as unparsed and
+  any break in them was silently missed.
+- The README one-liner now includes `--from` and `docs/example`. `uvx
+  willitbreak urllib3 --to 2.2.1` cannot work: `uvx` does not install
+  urllib3, so there is no version to upgrade from.
+
 ## [0.1.3] - 2026-08-12
 
 ### Fixed

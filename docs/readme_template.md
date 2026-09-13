@@ -16,8 +16,7 @@ the whole changelog, or upgrade in a branch and wait for the test suite to
 maybe catch it.
 
 ```bash
-pip install willitbreak
-willitbreak urllib3 --to 2.2.1
+uvx willitbreak urllib3 --from 1.26.18 --to 2.2.1 docs/example
 ```
 
 <!--SHOT_REPORT-->

@@ -412,7 +412,7 @@ def read_surface(root: pathlib.Path, package: str, version: str = "") -> Surface
         if module is None:
             continue
         try:
-            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+            tree = ast.parse(path.read_text(encoding="utf-8-sig", errors="replace"))
         except (SyntaxError, ValueError, OSError):
             # A module written for a newer Python than this one, or genuinely
             # broken. Recorded so the report can say the picture is partial.
@@ -428,7 +428,7 @@ def read_surface(root: pathlib.Path, package: str, version: str = "") -> Surface
 
 def _read_single_module(path: pathlib.Path, package: str, surface: Surface) -> Surface:
     try:
-        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+        tree = ast.parse(path.read_text(encoding="utf-8-sig", errors="replace"))
     except (SyntaxError, ValueError, OSError):
         surface.unreadable.append(package)
         return surface

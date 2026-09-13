@@ -18,6 +18,7 @@ from willitbreak.surface import (
     VAR_KEYWORD,
     VAR_POSITIONAL,
     is_private,
+    read_surface,
 )
 
 
@@ -34,6 +35,15 @@ class TestPrivacy(unittest.TestCase):
 
 
 class TestExtraction(PackageCase):
+    def test_utf8_bom_is_not_an_unreadable_module(self):
+        root = self.root / "bom"
+        path = root / "pkg" / "__init__.py"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"\xef\xbb\xbfdef f(a):\n    pass\n")
+        surface = read_surface(root, "pkg", "1.0")
+        self.assertEqual(surface.get("pkg.f").kind, "function")
+        self.assertEqual(surface.unreadable, [])
+
     def test_functions_classes_and_attributes(self):
         surface = self.surface(
             {"__init__": "VERSION = '1'\nclass C:\n    pass\ndef f(a):\n    pass\n"}
